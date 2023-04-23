@@ -1,7 +1,10 @@
 #include <getopt.h>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <string>
+#include "trie.cpp"
+#include "encoder.cpp"
 
 enum State { NONE, COMPRESSION, DECOMPRESSION };
 struct Options {
@@ -21,8 +24,6 @@ void print_help() {
 void print_whole_file(Options& options) {
 	std::string line;
 	std::cout << ":::\n";
-	//(*options.input_stream) >> line;
-	//std::cout << line << std::endl;
 	while (getline(*(options.input_stream), line)) {
 		(*options.output_stream) << line << std::endl;
 	}
@@ -90,7 +91,14 @@ int main(int argc, char** argv) {
 		options.output_stream = &output_stream;
 	}
 
-	print_whole_file(options);
+	std::cout << "?" << state << std::endl;
+	if (state == COMPRESSION) {
+		std::string s(std::istreambuf_iterator<char>(input_stream), {});
+		std::cout << encode(s) << std::endl;
+		(*options.output_stream) << encode(s);
+	} else { // DECOMPRESSION
+		(*options.output_stream) << decode(input_stream);
+	}
 
 	return 0;
 }
