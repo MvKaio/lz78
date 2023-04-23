@@ -1,10 +1,29 @@
 #! /bin/bash
-for file in $(find outputs -type f -name "*.z78")
+# Compresses and decompresses files and checks if the result 
+# is the same as the original files
+
+for dir in $(find inputs -type d)
 do
-	decompressed_file="${file%.*}.txt"
-	file_name=$(basename $file)
-	file_name="${file_name%.*}"
-	original_file=$(find inputs -name "$file_name*")
-	./lz78 -x $file -o $decompressed_file
-	diff $original_file $decompressed_file
+	output_dir="${dir/inputs/outputs}"
+	mkdir -p $output_dir
+done
+
+for file in $(find inputs -type f)
+do
+	compressed_file="${file/inputs/outputs}"
+	compressed_file="${compressed_file%.*}"
+	compressed_file="${compressed_file}.z78"
+
+	# Compress
+	./lz78 -c $file -o $compressed_file > /tmp/null
+
+	decompressed_file="${compressed_file%.*}"
+	decompressed_file="${decompressed_file}.txt"
+
+	# Decompress
+	./lz78 -x $compressed_file -o $decompressed_file > /tmp/null
+
+	# Check
+	diff $file $decompressed_file > /tmp/null ||
+	echo "Error in the compression for $file"
 done
