@@ -49,7 +49,6 @@ int main(int argc, char** argv) {
 				}
 				state = COMPRESSION;
 				input_file = optarg;
-				std::cout << "arquivo para compressao: " << optarg << std::endl;
 				break;
 			case 'x':
 				if (state != NONE) {
@@ -91,11 +90,13 @@ int main(int argc, char** argv) {
 		options.output_stream = &output_stream;
 	}
 
-	std::cout << "?" << state << std::endl;
 	if (state == COMPRESSION) {
 		std::string s(std::istreambuf_iterator<char>(input_stream), {});
-		std::cout << encode(s) << std::endl;
-		(*options.output_stream) << encode(s);
+		auto tokens = encode(s);
+		for (auto [node, ch] : tokens) {
+			output_stream.write((const char*)&node, sizeof(int));
+			output_stream << ch;
+		}
 	} else { // DECOMPRESSION
 		(*options.output_stream) << decode(input_stream);
 	}
