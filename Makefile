@@ -1,9 +1,13 @@
 CXX = g++
 CXXFLAGS = -O2 -std=c++17
-SRC_FOLDER = ./src/
+SRC = ./src
+SCRIPTS = ./scripts
 
-all:
-	$(CXX) $(CXXFLAGS) $(SRC_FOLDER)lz78.cpp -o lz78
+all: $(SRC)/*
+	$(CXX) $(CXXFLAGS) $(SRC)/lz78.cpp -o lz78
+
+compress:
+	$(SCRIPTS)/compress.sh
 
 clean:
-	rm lz78
+	rm lz78 && rm -r outputs
