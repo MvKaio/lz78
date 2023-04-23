@@ -12,20 +12,28 @@ vector<pair<int, char>> encode(string s) {
 
 	s += '\0';
 
-	vector<pair<int, char>> answer;
+	vector<pair<int, char>> tokens;
 
 	for (int i = 0; i < s.size(); i++) {
 		int next_node = trie.next_node(current_node, s[i]);
 		if (next_node == -1) {
 			trie.insert(current_node, s[i]);
-			answer.emplace_back(current_node, s[i]);
+			tokens.emplace_back(current_node, s[i]);
 			current_node = 0;
 		} else {
 			current_node = next_node;
 		}
 	}
 
-	return answer;
+	return tokens;
+}
+
+bool write_to_a_file(vector<pair<int, char>>& tokens, std::ostream& out) {
+	for (auto& [node, ch] : tokens) {
+		out.write((const char*)&node, sizeof(int));
+		out << ch;
+	}
+	return not out.fail();
 }
 
 string decode(std::istream& input) {
@@ -35,10 +43,9 @@ string decode(std::istream& input) {
 	int node;
 	char new_char;
 	for (int index = 1; input; index++) {
-		input.read((char*)&node, 4);
+		input.read((char*)&node, sizeof(int));
 		input.get(new_char);
 		if (!input) break;
-		std::cout << "[" << node << "." << new_char << "]" << std::endl;
 		trie.insert(node, new_char);
 		answer += trie.get_string(index);
 		if (new_char == '\0')

@@ -1,19 +1,8 @@
 #include <getopt.h>
 #include <iostream>
 #include <fstream>
-#include <sstream>
 #include <string>
-#include "trie.cpp"
 #include "encoder.cpp"
-
-enum State { NONE, COMPRESSION, DECOMPRESSION };
-struct Options {
-	State state;
-	std::istream* input_stream;
-	std::ostream* output_stream;
-	Options(State _state, std::istream& input, std::ostream& output) :
-			state(_state), input_stream(&input), output_stream(&output) {}
-};
 
 void print_help() {
 	std::cerr << "Usage:\n";
@@ -21,42 +10,33 @@ void print_help() {
 	std::cerr << "Decompression: ./lz78 -x <input_file> [-o <output_file>]\n";
 }
 
-void print_whole_file(Options& options) {
-	std::string line;
-	std::cout << ":::\n";
-	while (getline(*(options.input_stream), line)) {
-		(*options.output_stream) << line << std::endl;
-	}
-}
-
 int main(int argc, char** argv) {
-	bool READING = true;
-	State state = NONE;
+	// Reading Command Line Options and Parsing Them
+	enum Mode { NONE, COMPRESSION, DECOMPRESSION };
+	Mode mode = NONE;
 	std::string input_file, output_file;
 	std::ifstream input_stream;
 	std::ofstream output_stream;
 
-	Options options(state, std::cin, std::cout);
-
+	bool READING = true;
 	while (READING) {
-		// Reading Command Line Options and Parsing Them
 		switch (getopt(argc, argv, "c:x:o:")) {
 			case 'c':
-				if (state != NONE) {
+				if (mode != NONE) {
 					std::cerr << "Error: Files for compression and decompression were given." << std::endl;
 					print_help();
 					return 1;
 				}
-				state = COMPRESSION;
+				mode = COMPRESSION;
 				input_file = optarg;
 				break;
 			case 'x':
-				if (state != NONE) {
+				if (mode != NONE) {
 					std::cerr << "Error: Files for compression and decompression were given." << std::endl;
 					print_help();
 					return 1;
 				}
-				state = DECOMPRESSION;
+				mode = DECOMPRESSION;
 				input_file = optarg; 
 				break;
 			case 'o':
@@ -68,7 +48,7 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	if (state == NONE) {
+	if (mode == NONE) {
 		print_help();
 		return 1;
 	}
@@ -79,26 +59,33 @@ int main(int argc, char** argv) {
 		std::cerr << "Error opening input file [" << input_file << "]\n";
 		return 1;
 	}
-	options.input_stream = &input_stream;
 
-	if (output_file != "") {
-		output_stream.open(output_file);
-		if (!output_stream.is_open()) {
-			std::cerr << "Error opening output file [" << output_file << "]\n";
-			return 1;
-		}
-		options.output_stream = &output_stream;
+	if (output_file == "") {
+		int dot_position = find(input_file.begin(), input_file.end(), '.') -
+				input_file.begin();
+		string extension = (mode == COMPRESSION ? ".z78" : ".txt");
+		output_file = input_file.substr(0, dot_position) + extension;
 	}
 
-	if (state == COMPRESSION) {
+	output_stream.open(output_file);
+	if (!output_stream.is_open()) {
+		std::cerr << "Error opening output file [" << output_file << "]\n";
+		return 1;
+	}
+
+	// Running the Compression or Decompression Method
+	if (mode == COMPRESSION) {
 		std::string s(std::istreambuf_iterator<char>(input_stream), {});
 		auto tokens = encode(s);
-		for (auto [node, ch] : tokens) {
-			output_stream.write((const char*)&node, sizeof(int));
-			output_stream << ch;
+		if (write_to_a_file(tokens, output_stream)) {
+			std::cout << "Successfully saved the compressed file [" << output_file << "]\n";
+		} else {
+			std::cerr << "Error writing to the compressed file [" << output_file << "]\n";
+			return 1;
 		}
 	} else { // DECOMPRESSION
-		(*options.output_stream) << decode(input_stream);
+		output_stream << decode(input_stream);
+		std::cout << "Successfully saved the decompressed file [" << output_file << "]\n";
 	}
 
 	return 0;
