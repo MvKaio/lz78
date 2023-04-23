@@ -4,6 +4,7 @@
 #include <string>
 #include "encoder.cpp"
 
+// Prints Usage Message to `stderr`
 void print_help() {
 	std::cerr << "Usage:\n";
 	std::cerr << "Compression: ./lz78 -c <input_file> [-o <output_file>]\n";
